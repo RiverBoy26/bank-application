@@ -2,8 +2,8 @@ package ru.neo.study.calculator.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import ru.neo.study.calculator.model.EmploymentStatus;
-import ru.neo.study.calculator.model.Position;
+import ru.neo.study.calculator.enums.EmploymentStatus;
+import ru.neo.study.calculator.enums.Position;
 
 import java.math.BigDecimal;
 

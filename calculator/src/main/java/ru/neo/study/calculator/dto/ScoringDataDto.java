@@ -2,8 +2,8 @@ package ru.neo.study.calculator.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import ru.neo.study.calculator.model.Gender;
-import ru.neo.study.calculator.model.MaritalStatus;
+import ru.neo.study.calculator.enums.Gender;
+import ru.neo.study.calculator.enums.MaritalStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
