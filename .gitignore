@@ -1,0 +1,22 @@
+# IDE
+.idea/
+**/.idea/
+*.iml
+*.iws
+*.ipr
+
+# Build
+target/
+**/target/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local env / secrets
+.env
+application-local.properties
+application-secret.properties
