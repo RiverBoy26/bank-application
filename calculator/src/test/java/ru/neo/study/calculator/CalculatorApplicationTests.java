@@ -17,6 +17,17 @@ import ru.neo.study.calculator.enums.Position;
 import ru.neo.study.calculator.exceptions.CancelCreditException;
 import ru.neo.study.calculator.exceptions.ValidationException;
 import ru.neo.study.calculator.service.CalculatorServiceImpl;
+import ru.neo.study.calculator.service.discounts.RulesProcessor;
+import ru.neo.study.calculator.service.discounts.parameters.DiscountsParam;
+import ru.neo.study.calculator.service.discounts.rules.DiscountRules;
+import ru.neo.study.calculator.service.discounts.rules.InsuranceEnabledRule;
+import ru.neo.study.calculator.service.discounts.rules.SalaryClientRule;
+import ru.neo.study.calculator.service.metrics.CalcHelperService;
+import ru.neo.study.calculator.service.metrics.CalcService;
+import ru.neo.study.calculator.service.metrics.OffersService;
+import ru.neo.study.calculator.service.metrics.parameters.MetricsParam;
+import ru.neo.study.calculator.service.validations.PrescoringService;
+import ru.neo.study.calculator.service.validations.ScoringService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,17 +35,49 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CalculatorApplicationTests {
 
     private CalculatorServiceImpl service;
+    private MetricsParam metricsParam;
 
     @BeforeEach
     void setUp() {
-        service = new CalculatorServiceImpl();
-        service.setLoanRate(20);
+        metricsParam = new MetricsParam();
+        metricsParam.setLoanRate(20);
+        metricsParam.setInsuranceRate(new BigDecimal("0.1"));
+        metricsParam.setLargeAmountThreshold(new BigDecimal("1000000"));
+        metricsParam.setLongTermThreshold(60);
+        metricsParam.setScale(10);
+
+        metricsParam.setMaxCountSalary(24);
+        metricsParam.setRangeAgeFemale(List.of(32, 60));
+        metricsParam.setRangeAgeMale(List.of(30, 55));
+        metricsParam.setMinTotalWorkMonth(18);
+        metricsParam.setMinCurrentWorkMonth(3);
+
+        metricsParam.setMinAmount(new BigDecimal("20000"));
+        metricsParam.setMinTerm(6);
+
+        DiscountsParam discountsParam = new DiscountsParam();
+        discountsParam.setSalaryClientDiscount(new BigDecimal("1.0"));
+        discountsParam.setInsuranceDiscount(new BigDecimal("0.5"));
+
+        DiscountRules insuranceRule = new InsuranceEnabledRule(discountsParam);
+        DiscountRules salaryClientRule = new SalaryClientRule(discountsParam);
+        RulesProcessor rulesProcessor = new RulesProcessor(List.of(insuranceRule, salaryClientRule));
+
+        CalcHelperService calcHelperService = new CalcHelperService(metricsParam, rulesProcessor);
+        ScoringService scoringService = new ScoringService(metricsParam);
+        PrescoringService prescoringService = new PrescoringService(metricsParam);
+
+        CalcService calcService = new CalcService(metricsParam, calcHelperService, scoringService, rulesProcessor);
+        OffersService offersService = new OffersService(calcHelperService, prescoringService);
+        service = new CalculatorServiceImpl(offersService, calcService);
     }
 
     @Test
@@ -174,11 +217,11 @@ class CalculatorApplicationTests {
         ScoringMocks mocks = successfulScoringData(
                 new BigDecimal("300000"),
                 LocalDate.now().minusYears(35),
-                EmploymentStatus.SELF_EMPLOYED, // +2
-                Position.TOP_MANAGEMENT, // -3
+                EmploymentStatus.SELF_EMPLOYED,
+                Position.TOP_MANAGEMENT,
                 new BigDecimal("100000"),
-                MaritalStatus.DIVORCED, // +1
-                Gender.NON_BINARY, // +7
+                MaritalStatus.DIVORCED,
+                Gender.NON_BINARY,
                 false,
                 false
         );
@@ -239,7 +282,7 @@ class CalculatorApplicationTests {
 
     @Test
     void calc_shouldUseSimpleDivision_whenRateIsZero() {
-        service.setLoanRate(0);
+        metricsParam.setLoanRate(0);
 
         ScoringMocks mocks = successfulScoringData(
                 new BigDecimal("120000"),
@@ -257,72 +300,6 @@ class CalculatorApplicationTests {
 
         assertBigDecimalEquals("10000.00", credit.getMonthlyPayment());
         assertBigDecimalEquals("0", credit.getRate());
-    }
-
-    private LoanStatementRequestDto validLoanStatementRequest() {
-        LoanStatementRequestDto request = mock(LoanStatementRequestDto.class);
-
-        when(request.getAmount()).thenReturn(new BigDecimal("300000"));
-        when(request.getTerm()).thenReturn(12);
-        when(request.getFirstName()).thenReturn("Ivan");
-        when(request.getLastName()).thenReturn("Ivanov");
-        when(request.getMiddleName()).thenReturn("Ivanovich");
-        when(request.getEmail()).thenReturn("ivanov@example.com");
-        when(request.getBirthdate()).thenReturn(LocalDate.now().minusYears(25));
-        when(request.getPassportSeries()).thenReturn("1234");
-        when(request.getPassportNumber()).thenReturn("123456");
-
-        return request;
-    }
-
-    private ScoringMocks minimalScoringMocks() {
-        ScoringDataDto scoringData = mock(ScoringDataDto.class);
-        EmploymentDto employment = mock(EmploymentDto.class);
-
-        when(scoringData.getEmployment()).thenReturn(employment);
-
-        return new ScoringMocks(scoringData, employment);
-    }
-
-    private ScoringMocks successfulScoringData(BigDecimal amount,
-                                               LocalDate birthdate,
-                                               EmploymentStatus employmentStatus,
-                                               Position position,
-                                               BigDecimal salary,
-                                               MaritalStatus maritalStatus,
-                                               Gender gender,
-                                               boolean insuranceEnabled,
-                                               boolean salaryClient) {
-        ScoringMocks mocks = minimalScoringMocks();
-
-        when(mocks.scoringData().getAmount()).thenReturn(amount);
-        lenient().when(mocks.scoringData().getTerm()).thenReturn(12);
-        when(mocks.scoringData().getBirthdate()).thenReturn(birthdate);
-        when(mocks.scoringData().getMaritalStatus()).thenReturn(maritalStatus);
-        when(mocks.scoringData().getGender()).thenReturn(gender);
-        lenient().when(mocks.scoringData().getIsInsuranceEnabled()).thenReturn(insuranceEnabled);
-        lenient().when(mocks.scoringData().getIsSalaryClient()).thenReturn(salaryClient);
-
-        when(mocks.employment().getEmploymentStatus()).thenReturn(employmentStatus);
-        when(mocks.employment().getPosition()).thenReturn(position);
-        when(mocks.employment().getSalary()).thenReturn(salary);
-        when(mocks.employment().getWorkExperienceTotal()).thenReturn(24);
-        when(mocks.employment().getWorkExperienceCurrent()).thenReturn(6);
-
-        return mocks;
-    }
-
-    private LoanOfferDto findOffer(List<LoanOfferDto> offers, boolean insurance, boolean salary) {
-        return offers.stream()
-                .filter(o -> Boolean.valueOf(insurance).equals(o.getIsInsuranceEnabled())
-                        && Boolean.valueOf(salary).equals(o.getIsSalaryClient()))
-                .findFirst()
-                .orElseThrow();
-    }
-
-    private void assertBigDecimalEquals(String expected, BigDecimal actual) {
-        assertEquals(0, new BigDecimal(expected).compareTo(actual),
-                () -> "Ожидалось " + expected + " вместо " + actual);
     }
 
     @Test
@@ -515,6 +492,74 @@ class CalculatorApplicationTests {
         CreditDto credit = service.calc(mocks.scoringData());
 
         assertBigDecimalEquals("330000.00", credit.getAmount());
+    }
+
+    private LoanStatementRequestDto validLoanStatementRequest() {
+        LoanStatementRequestDto request = mock(LoanStatementRequestDto.class);
+
+        when(request.getAmount()).thenReturn(new BigDecimal("300000"));
+        when(request.getTerm()).thenReturn(12);
+        when(request.getFirstName()).thenReturn("Ivan");
+        when(request.getLastName()).thenReturn("Ivanov");
+        when(request.getMiddleName()).thenReturn("Ivanovich");
+        when(request.getEmail()).thenReturn("ivanov@example.com");
+        when(request.getBirthdate()).thenReturn(LocalDate.now().minusYears(25));
+        when(request.getPassportSeries()).thenReturn("1234");
+        when(request.getPassportNumber()).thenReturn("123456");
+
+        return request;
+    }
+
+    private ScoringMocks minimalScoringMocks() {
+        ScoringDataDto scoringData = mock(ScoringDataDto.class);
+        EmploymentDto employment = mock(EmploymentDto.class);
+
+        when(scoringData.getEmployment()).thenReturn(employment);
+        lenient().when(scoringData.getIsInsuranceEnabled()).thenReturn(false);
+        lenient().when(scoringData.getIsSalaryClient()).thenReturn(false);
+
+        return new ScoringMocks(scoringData, employment);
+    }
+
+    private ScoringMocks successfulScoringData(BigDecimal amount,
+                                               LocalDate birthdate,
+                                               EmploymentStatus employmentStatus,
+                                               Position position,
+                                               BigDecimal salary,
+                                               MaritalStatus maritalStatus,
+                                               Gender gender,
+                                               boolean insuranceEnabled,
+                                               boolean salaryClient) {
+        ScoringMocks mocks = minimalScoringMocks();
+
+        when(mocks.scoringData().getAmount()).thenReturn(amount);
+        lenient().when(mocks.scoringData().getTerm()).thenReturn(12);
+        when(mocks.scoringData().getBirthdate()).thenReturn(birthdate);
+        when(mocks.scoringData().getMaritalStatus()).thenReturn(maritalStatus);
+        when(mocks.scoringData().getGender()).thenReturn(gender);
+        lenient().when(mocks.scoringData().getIsInsuranceEnabled()).thenReturn(insuranceEnabled);
+        lenient().when(mocks.scoringData().getIsSalaryClient()).thenReturn(salaryClient);
+
+        when(mocks.employment().getEmploymentStatus()).thenReturn(employmentStatus);
+        when(mocks.employment().getPosition()).thenReturn(position);
+        when(mocks.employment().getSalary()).thenReturn(salary);
+        when(mocks.employment().getWorkExperienceTotal()).thenReturn(24);
+        when(mocks.employment().getWorkExperienceCurrent()).thenReturn(6);
+
+        return mocks;
+    }
+
+    private LoanOfferDto findOffer(List<LoanOfferDto> offers, boolean insurance, boolean salary) {
+        return offers.stream()
+                .filter(o -> Boolean.valueOf(insurance).equals(o.getIsInsuranceEnabled())
+                        && Boolean.valueOf(salary).equals(o.getIsSalaryClient()))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private void assertBigDecimalEquals(String expected, BigDecimal actual) {
+        assertEquals(0, new BigDecimal(expected).compareTo(actual),
+                () -> "Ожидалось " + expected + " вместо " + actual);
     }
 
     private record ScoringMocks(ScoringDataDto scoringData, EmploymentDto employment) {
