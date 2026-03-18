@@ -2,15 +2,11 @@ package ru.neo.study.calculator.service.validations;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Service;
 import ru.neo.study.calculator.dto.LoanStatementRequestDto;
 import ru.neo.study.calculator.exceptions.ValidationException;
-import ru.neo.study.calculator.service.CalculatorService;
-import ru.neo.study.calculator.service.CalculatorServiceImpl;
 import ru.neo.study.calculator.service.metrics.parameters.MetricsParam;
 
 import java.math.BigDecimal;

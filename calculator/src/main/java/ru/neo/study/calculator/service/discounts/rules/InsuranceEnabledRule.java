@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import ru.neo.study.calculator.service.discounts.parameters.DiscountsOptions;
 import ru.neo.study.calculator.service.discounts.parameters.DiscountsParam;
-import ru.neo.study.calculator.service.metrics.CalcService;
 
 import java.math.BigDecimal;
 
