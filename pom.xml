@@ -1,0 +1,32 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>ru.neo.study</groupId>
+    <artifactId>bank-application</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>bank-application</name>
+    <description>Parent project for bank application</description>
+
+    <modules>
+        <module>api/deal-api</module>
+        <module>api/calculator-api</module>
+        <module>common-dto</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+    </properties>
+
+</project>

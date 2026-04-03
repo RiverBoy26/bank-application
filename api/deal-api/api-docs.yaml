@@ -1,0 +1,164 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://localhost:8082
+  description: Generated server url
+paths:
+  /deal/statement:
+    post:
+      tags:
+      - deal-api-controller
+      operationId: calculateLoanTerms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoanStatementRequestDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LoanOfferDto"
+  /deal/offer/select:
+    post:
+      tags:
+      - deal-api-controller
+      operationId: selectOffer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoanOfferDto"
+        required: true
+      responses:
+        "201":
+          description: Created
+  /deal/calculate/{statementId}:
+    post:
+      tags:
+      - deal-api-controller
+      operationId: finishRegistrationAndCalculate
+      parameters:
+      - name: statementId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FinishRegistrationRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Created
+components:
+  schemas:
+    LoanStatementRequestDto:
+      type: object
+      properties:
+        amount:
+          type: number
+        term:
+          type: integer
+          format: int32
+        firstName:
+          type: string
+        lastName:
+          type: string
+        middleName:
+          type: string
+        email:
+          type: string
+        birthdate:
+          type: string
+          format: date
+        passportSeries:
+          type: string
+        passportNumber:
+          type: string
+    LoanOfferDto:
+      type: object
+      properties:
+        statementId:
+          type: string
+          format: uuid
+        requestedAmount:
+          type: number
+        totalAmount:
+          type: number
+        term:
+          type: integer
+          format: int32
+        monthlyPayment:
+          type: number
+        rate:
+          type: number
+        isInsuranceEnabled:
+          type: boolean
+        isSalaryClient:
+          type: boolean
+    EmploymentDto:
+      type: object
+      properties:
+        employmentStatus:
+          type: string
+          enum:
+          - BUSINESS_OWNER
+          - EMPLOYED
+          - SELF_EMPLOYED
+          - UNEMPLOYED
+        employerINN:
+          type: string
+        salary:
+          type: number
+        position:
+          type: string
+          enum:
+          - TOP_MANAGEMENT
+          - MID_MANAGEMENT
+          - WORKER
+          - OWNER
+        workExperienceTotal:
+          type: integer
+          format: int32
+        workExperienceCurrent:
+          type: integer
+          format: int32
+    FinishRegistrationRequestDto:
+      type: object
+      properties:
+        gender:
+          type: string
+          enum:
+          - MALE
+          - FEMALE
+          - NON_BINARY
+        maritalStatus:
+          type: string
+          enum:
+          - SINGLE
+          - MARRIED
+          - DIVORCED
+          - WIDOW_WIDOWER
+        dependentAmount:
+          type: integer
+          format: int32
+        passportIssueDate:
+          type: string
+          format: date
+        passportIssueBranch:
+          type: string
+        employment:
+          $ref: "#/components/schemas/EmploymentDto"
+        accountNumber:
+          type: string
