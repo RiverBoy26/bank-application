@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import dto.LoanStatementRequestDto;
+import ru.neo.study.calculator.dto.LoanStatementRequestDto;
 import ru.neo.study.calculator.exceptions.ValidationException;
 import ru.neo.study.calculator.service.metrics.parameters.MetricsParam;
 

@@ -1,0 +1,20 @@
+services:
+  calculator-api:
+    build:
+      context: ./api/calculator-api
+      dockerfile: Dockerfile
+    container_name: calculator
+    ports:
+      - "8081:8080"
+
+  deal-api:
+    build:
+      context: ./api/deal-api
+      dockerfile: Dockerfile
+    container_name: deal-api
+    ports:
+      - "8082:8080"
+    environment:
+      CALCULATOR_API_URL: http://calculator:8080
+    depends_on:
+      - calculator-api

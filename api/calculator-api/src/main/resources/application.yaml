@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: calculator
+server:
+  port: '8081'
+credit-properties:
+  loan-rate: '20'
+  max-count-salary: '24'
+  range-age-female: 32,60
+  range-age-male: 30,55
+  min-total-work-month: '18'
+  min-current-work-month: '3'
+  min-amount: '20000'
+  min-term: '6'
+  insurance-rate: '0.1'
+  large-amount-threshold: '1000000'
+  long-term-threshold: '60'
+  scale: '10'
+discount-properties:
+  salary-client-discount: '1.0'
+  insurance-discount: '0.5'

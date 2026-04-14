@@ -1,8 +1,8 @@
 package ru.neo.study.dealapi.entity;
 
-import dto.LoanOfferDto;
-import dto.StatementStatusHistoryDto;
-import enums.ApplicationStatus;
+import ru.neo.study.dealapi.dto.LoanOfferDto;
+import ru.neo.study.dealapi.dto.StatementStatusHistoryDto;
+import ru.neo.study.dealapi.enums.ApplicationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

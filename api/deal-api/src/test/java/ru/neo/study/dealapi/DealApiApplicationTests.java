@@ -1,7 +1,7 @@
 package ru.neo.study.dealapi;
 
-import dto.*;
-import enums.*;
+import ru.neo.study.dealapi.dto.*;
+import ru.neo.study.dealapi.enums.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;

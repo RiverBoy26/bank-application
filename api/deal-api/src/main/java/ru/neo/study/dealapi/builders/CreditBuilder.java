@@ -1,7 +1,7 @@
 package ru.neo.study.dealapi.builders;
 
-import dto.CreditDto;
-import enums.CreditStatus;
+import ru.neo.study.dealapi.dto.CreditDto;
+import ru.neo.study.dealapi.enums.CreditStatus;
 import org.springframework.stereotype.Component;
 import ru.neo.study.dealapi.entity.Credit;
 

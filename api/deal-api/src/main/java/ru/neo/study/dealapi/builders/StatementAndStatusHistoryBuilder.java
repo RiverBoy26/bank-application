@@ -1,8 +1,8 @@
 package ru.neo.study.dealapi.builders;
 
-import dto.StatementStatusHistoryDto;
-import enums.ApplicationStatus;
-import enums.ChangeType;
+import ru.neo.study.dealapi.dto.StatementStatusHistoryDto;
+import ru.neo.study.dealapi.enums.ApplicationStatus;
+import ru.neo.study.dealapi.enums.ChangeType;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

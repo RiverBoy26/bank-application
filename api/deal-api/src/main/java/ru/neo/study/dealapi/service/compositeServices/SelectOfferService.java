@@ -1,8 +1,8 @@
 package ru.neo.study.dealapi.service.compositeServices;
 
-import dto.LoanOfferDto;
-import enums.ApplicationStatus;
-import enums.ChangeType;
+import ru.neo.study.dealapi.dto.LoanOfferDto;
+import ru.neo.study.dealapi.enums.ApplicationStatus;
+import ru.neo.study.dealapi.enums.ChangeType;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

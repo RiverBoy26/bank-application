@@ -5,12 +5,12 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import dto.EmploymentDto;
-import dto.ScoringDataDto;
-import enums.EmploymentStatus;
-import enums.Gender;
-import enums.MaritalStatus;
-import enums.Position;
+import ru.neo.study.calculator.dto.EmploymentDto;
+import ru.neo.study.calculator.dto.ScoringDataDto;
+import ru.neo.study.calculator.enums.EmploymentStatus;
+import ru.neo.study.calculator.enums.Gender;
+import ru.neo.study.calculator.enums.MaritalStatus;
+import ru.neo.study.calculator.enums.Position;
 import ru.neo.study.calculator.exceptions.CancelCreditException;
 import ru.neo.study.calculator.service.metrics.parameters.MetricsParam;
 

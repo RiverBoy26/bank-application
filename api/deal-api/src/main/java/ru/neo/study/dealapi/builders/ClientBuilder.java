@@ -1,8 +1,8 @@
 package ru.neo.study.dealapi.builders;
 
-import dto.EmploymentDto;
-import dto.FinishRegistrationRequestDto;
-import dto.LoanStatementRequestDto;
+import ru.neo.study.dealapi.dto.EmploymentDto;
+import ru.neo.study.dealapi.dto.FinishRegistrationRequestDto;
+import ru.neo.study.dealapi.dto.LoanStatementRequestDto;
 import org.springframework.stereotype.Component;
 import ru.neo.study.dealapi.entity.Client;
 import ru.neo.study.dealapi.entity.Employment;

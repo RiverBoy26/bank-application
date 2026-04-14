@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import dto.*;
+import ru.neo.study.calculator.dto.*;
 import ru.neo.study.calculator.service.metrics.CalcService;
 import ru.neo.study.calculator.service.metrics.OffersService;
 

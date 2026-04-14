@@ -1,7 +1,7 @@
 package ru.neo.study.dealapi.entity;
 
-import dto.PaymentScheduleElementDto;
-import enums.CreditStatus;
+import ru.neo.study.dealapi.dto.PaymentScheduleElementDto;
+import ru.neo.study.dealapi.enums.CreditStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;

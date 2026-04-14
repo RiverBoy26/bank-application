@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import dto.LoanOfferDto;
-import dto.LoanStatementRequestDto;
+import ru.neo.study.calculator.dto.LoanOfferDto;
+import ru.neo.study.calculator.dto.LoanStatementRequestDto;
 import ru.neo.study.calculator.service.discounts.parameters.DiscountsOptions;
 import ru.neo.study.calculator.service.validations.PrescoringService;
 

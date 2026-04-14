@@ -1,8 +1,8 @@
 package ru.neo.study.dealapi.controller;
 
-import dto.FinishRegistrationRequestDto;
-import dto.LoanOfferDto;
-import dto.LoanStatementRequestDto;
+import ru.neo.study.dealapi.dto.FinishRegistrationRequestDto;
+import ru.neo.study.dealapi.dto.LoanOfferDto;
+import ru.neo.study.dealapi.dto.LoanStatementRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

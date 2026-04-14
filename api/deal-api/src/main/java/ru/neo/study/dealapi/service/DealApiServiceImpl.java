@@ -1,8 +1,8 @@
 package ru.neo.study.dealapi.service;
 
-import dto.FinishRegistrationRequestDto;
-import dto.LoanOfferDto;
-import dto.LoanStatementRequestDto;
+import ru.neo.study.dealapi.dto.FinishRegistrationRequestDto;
+import ru.neo.study.dealapi.dto.LoanOfferDto;
+import ru.neo.study.dealapi.dto.LoanStatementRequestDto;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

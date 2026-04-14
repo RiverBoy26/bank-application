@@ -1,9 +1,9 @@
 package ru.neo.study.dealapi.calculatorClient;
 
-import dto.CreditDto;
-import dto.LoanOfferDto;
-import dto.LoanStatementRequestDto;
-import dto.ScoringDataDto;
+import ru.neo.study.dealapi.dto.CreditDto;
+import ru.neo.study.dealapi.dto.LoanOfferDto;
+import ru.neo.study.dealapi.dto.LoanStatementRequestDto;
+import ru.neo.study.dealapi.dto.ScoringDataDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;

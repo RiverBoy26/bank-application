@@ -1,9 +1,9 @@
 package ru.neo.study.dealapi.builders;
 
-import dto.EmploymentDto;
-import dto.FinishRegistrationRequestDto;
-import dto.LoanOfferDto;
-import dto.ScoringDataDto;
+import ru.neo.study.dealapi.dto.EmploymentDto;
+import ru.neo.study.dealapi.dto.FinishRegistrationRequestDto;
+import ru.neo.study.dealapi.dto.LoanOfferDto;
+import ru.neo.study.dealapi.dto.ScoringDataDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import ru.neo.study.dealapi.entity.Client;

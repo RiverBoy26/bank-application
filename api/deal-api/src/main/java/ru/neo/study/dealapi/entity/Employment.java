@@ -1,7 +1,7 @@
 package ru.neo.study.dealapi.entity;
 
-import enums.EmploymentStatus;
-import enums.Position;
+import ru.neo.study.dealapi.enums.EmploymentStatus;
+import ru.neo.study.dealapi.enums.Position;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;

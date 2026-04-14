@@ -1,7 +1,7 @@
 package ru.neo.study.dealapi.entity;
 
-import enums.Gender;
-import enums.MaritalStatus;
+import ru.neo.study.dealapi.enums.Gender;
+import ru.neo.study.dealapi.enums.MaritalStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;

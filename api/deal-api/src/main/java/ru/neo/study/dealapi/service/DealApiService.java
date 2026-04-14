@@ -1,10 +1,8 @@
 package ru.neo.study.dealapi.service;
 
-import dto.FinishRegistrationRequestDto;
-import dto.LoanOfferDto;
-import dto.LoanStatementRequestDto;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
+import ru.neo.study.dealapi.dto.FinishRegistrationRequestDto;
+import ru.neo.study.dealapi.dto.LoanOfferDto;
+import ru.neo.study.dealapi.dto.LoanStatementRequestDto;
 
 import java.util.List;
 import java.util.UUID;

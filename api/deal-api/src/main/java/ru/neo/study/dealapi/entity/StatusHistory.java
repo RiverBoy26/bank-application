@@ -1,7 +1,7 @@
 package ru.neo.study.dealapi.entity;
 
-import enums.ApplicationStatus;
-import enums.ChangeType;
+import ru.neo.study.dealapi.enums.ApplicationStatus;
+import ru.neo.study.dealapi.enums.ChangeType;
 import lombok.*;
 
 import java.time.LocalDateTime;
