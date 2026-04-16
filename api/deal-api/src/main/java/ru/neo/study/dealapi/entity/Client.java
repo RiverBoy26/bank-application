@@ -1,12 +1,24 @@
 package ru.neo.study.dealapi.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import ru.neo.study.dealapi.enums.Gender;
 import ru.neo.study.dealapi.enums.MaritalStatus;
-import jakarta.persistence.*;
-import lombok.*;
+
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
+import ru.neo.study.dealapi.jsonb.Employment;
+import ru.neo.study.dealapi.jsonb.Passport;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -15,7 +27,6 @@ import java.util.UUID;
 @Table(name = "client")
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Client {
@@ -32,7 +43,7 @@ public class Client {
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
-    @Column(name = "middle_name", nullable = false)
+    @Column(name = "middle_name")
     private String middleName;
 
     @Column(name = "birth_date", nullable = false)
@@ -53,11 +64,11 @@ public class Client {
     private Integer dependentAmount;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "passport_id", columnDefinition = "jsonb")
+    @Column(name = "passport", columnDefinition = "jsonb")
     private Passport passport;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "employment_id", columnDefinition = "jsonb")
+    @Column(name = "employment", columnDefinition = "jsonb")
     private Employment employment;
 
     @Column(name = "account_number")

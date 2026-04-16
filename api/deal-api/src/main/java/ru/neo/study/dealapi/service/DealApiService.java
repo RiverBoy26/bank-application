@@ -13,4 +13,6 @@ public interface DealApiService {
     void selectOffer(LoanOfferDto loanOfferDto);
 
     void finishRegistrationAndCalculate(UUID statementId, FinishRegistrationRequestDto finishRegistrationRequestDto);
+
+    String getStatementStatus(UUID statementId);
 }

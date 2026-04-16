@@ -1,8 +1,10 @@
-package ru.neo.study.dealapi.entity;
+package ru.neo.study.dealapi.jsonb;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.UuidGenerator;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -13,10 +15,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Passport {
-
-    @Id
-    @GeneratedValue
-    @UuidGenerator
     private UUID id;
     private String series;
     private String number;

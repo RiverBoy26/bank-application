@@ -1,13 +1,20 @@
 package ru.neo.study.dealapi.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import ru.neo.study.dealapi.dto.PaymentScheduleElementDto;
 import ru.neo.study.dealapi.enums.CreditStatus;
-import jakarta.persistence.*;
-import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
-import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.util.List;
