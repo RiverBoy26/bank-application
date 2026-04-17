@@ -45,7 +45,7 @@ public class DealApiServiceImpl implements DealApiService {
     public List<LoanOfferDto> calculateLoanTerms(LoanStatementRequestDto loanStatementRequestDto) {
         Client client = clientMapper.toEntity(loanStatementRequestDto);
         client = clientRepository.save(client);
-        log.info("Клиент создан и сохранён: clientId={}", client.getId());
+        log.debug("Клиент создан и сохранён: clientId={}", client.getId());
 
         Statement statement = statementMapper.toNewStatement(
                 client,
@@ -71,7 +71,7 @@ public class DealApiServiceImpl implements DealApiService {
             log.warn("Ожидалось 4 предложения, но для statementId={} получено {}", statement.getId(), normalizedOffers.size());
         }
 
-        log.info("Для statementId={} получено {} предложений: {}",
+        log.debug("Для statementId={} получено {} предложений: {}",
                 statement.getId(), normalizedOffers.size(), normalizedOffers);
         return normalizedOffers;
     }
@@ -79,7 +79,6 @@ public class DealApiServiceImpl implements DealApiService {
     @Override
     @Transactional
     public void selectOffer(LoanOfferDto loanOfferDto) {
-        log.info("Получен запрос на выбор предложения: {}", loanOfferDto);
 
         if (loanOfferDto.getStatementId() == null) {
             log.error("В LoanOfferDto отсутствует statementId: {}", loanOfferDto);
@@ -98,7 +97,7 @@ public class DealApiServiceImpl implements DealApiService {
         statementMapper.appendStatusHistory(statement, ApplicationStatus.APPROVED, ChangeType.MANUAL);
 
         statementRepository.save(statement);
-        log.info("Предложение выбрано и сохранено в заявке: statementId={}, newStatus={}",
+        log.debug("Предложение выбрано и сохранено в заявке: statementId={}, newStatus={}",
                 statement.getId(), statement.getStatus());
     }
 
@@ -115,25 +114,25 @@ public class DealApiServiceImpl implements DealApiService {
 
         clientMapper.updateClientFromFinishRegistration(finishRegistrationRequestDto, client);
         clientRepository.save(client);
-        log.info("Данные клиента обновлены для statementId={}: clientId={}", statement.getId(), client.getId());
+        log.debug("Данные клиента обновлены для statementId={}: clientId={}", statement.getId(), client.getId());
 
         ScoringDataDto scoringDataDto = scoringDataMapper.toDto(client, statement, finishRegistrationRequestDto);
         log.debug("Сформирован ScoringDataDto для statementId={}: {}", statement.getId(), scoringDataDto);
 
         CreditDto creditDto = calculatorClient.calc(scoringDataDto);
-        log.info("Получен результат полного расчёта кредита от calculator для statementId={}: {}",
+        log.debug("Получен результат полного расчёта кредита от calculator для statementId={}: {}",
                 statement.getId(), creditDto);
 
         Credit credit = creditMapper.toEntity(creditDto);
         credit = creditRepository.save(credit);
-        log.info("Сущность кредита сохранена: creditId={}, statementId={}", credit.getId(), statement.getId());
+        log.debug("Сущность кредита сохранена: creditId={}, statementId={}", credit.getId(), statement.getId());
 
         statement.setCredit(credit);
         statement.setStatus(ApplicationStatus.CC_APPROVED);
         statementMapper.appendStatusHistory(statement, ApplicationStatus.CC_APPROVED, ChangeType.AUTOMATIC);
 
         statementRepository.save(statement);
-        log.info("Заявка обновлена после полного расчёта кредита: statementId={}, status={}, creditId={}",
+        log.debug("Заявка обновлена после полного расчёта кредита: statementId={}, status={}, creditId={}",
                 statement.getId(), statement.getStatus(), credit.getId());
     }
 

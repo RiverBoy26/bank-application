@@ -27,12 +27,16 @@ public class DealApiController {
     @PostMapping("/statement")
     public ResponseEntity<List<LoanOfferDto>> calculateLoanTerms(@RequestBody LoanStatementRequestDto loanStatementRequestDto) {
         log.info("Получен запрос на предварительный расчёт кредита: {}", loanStatementRequestDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dealApiService.calculateLoanTerms(loanStatementRequestDto));
+        List<LoanOfferDto> body = dealApiService.calculateLoanTerms(loanStatementRequestDto);
+        log.info("Запросы на предварительный расчёт кредита получены: {}", body);
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 
     @PostMapping("/offer/select")
     public ResponseEntity<Void> selectOffer(@RequestBody LoanOfferDto loanOfferDto) {
+        log.info("Получен запрос на выбор предложения: {}", loanOfferDto);
         dealApiService.selectOffer(loanOfferDto);
+        log.info("Процесс выбора предложения {} завершён", loanOfferDto);
         return ResponseEntity
                 .ok()
                 .header("Location", "/statement/" + loanOfferDto.getStatementId())
@@ -45,6 +49,7 @@ public class DealApiController {
         log.info("Получен запрос на завершение регистрации и полный расчёт кредита: statementId={}, body={}",
                 statementId, finishRegistrationRequestDto);
         dealApiService.finishRegistrationAndCalculate(statementId, finishRegistrationRequestDto);
+        log.info("Процесс запроса на завершение регистрации и полный расчёт кредита завершён");
         return ResponseEntity
                 .ok()
                 .header("StatementStatus", dealApiService.getStatementStatus(statementId))
