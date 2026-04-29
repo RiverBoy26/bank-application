@@ -1,6 +1,7 @@
 package ru.neo.study.dealapi;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,8 +10,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import ru.neo.study.dealapi.calculatorClient.CalculatorClient;
 import ru.neo.study.dealapi.controller.DealApiController;
 import ru.neo.study.dealapi.dto.CreditDto;
@@ -49,10 +53,19 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -280,7 +293,7 @@ class DealApiApplicationTests {
                     )
             ));
 
-            when(statementRepository.findById(statementId)).thenReturn(Optional.of(statement));
+            when(statementRepository.findByIdWithBlock(statementId)).thenReturn(Optional.of(statement));
 
             service.selectOffer(offer);
 
@@ -290,7 +303,7 @@ class DealApiApplicationTests {
             assertThat(statement.getStatusHistory().get(1).getStatus()).isEqualTo(ApplicationStatus.APPROVED);
             assertThat(statement.getStatusHistory().get(1).getChangeType()).isEqualTo(ChangeType.MANUAL);
 
-            verify(statementRepository).findById(statementId);
+            verify(statementRepository).findByIdWithBlock(statementId);
             verify(statementRepository).save(statement);
         }
 
@@ -310,7 +323,7 @@ class DealApiApplicationTests {
             UUID statementId = UUID.randomUUID();
             LoanOfferDto offer = loanOffer(statementId, "14.40");
 
-            when(statementRepository.findById(statementId)).thenReturn(Optional.empty());
+            when(statementRepository.findByIdWithBlock(statementId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.selectOffer(offer))
                     .isInstanceOf(EntityNotFoundException.class)
@@ -658,7 +671,7 @@ class DealApiApplicationTests {
         );
     }
 
-    private static LoanOfferDto loanOffer(UUID statementId, String rate) {
+    static LoanOfferDto loanOffer(UUID statementId, String rate) {
         return new LoanOfferDto(
                 statementId,
                 new BigDecimal("300000"),
@@ -710,5 +723,114 @@ class DealApiApplicationTests {
                 .creationDate(LocalDateTime.now())
                 .statusHistory(List.of())
                 .build();
+    }
+}
+
+@Nested
+@SpringBootTest
+class DatabaseLockIntegrationTests {
+
+    @Autowired
+    private DealApiService dealApiService;
+
+    @Autowired
+    private ClientRepository clientRepository;
+
+    @Autowired
+    private StatementRepository statementRepository;
+
+    @Autowired
+    private org.springframework.transaction.PlatformTransactionManager transactionManager;
+
+    @AfterEach
+    void tearDown() {
+        statementRepository.deleteAll();
+        clientRepository.deleteAll();
+    }
+
+    @Test
+    void secondSelectOfferCallShouldWaitUntilFirstTransactionReleasesDbLock() throws Exception {
+        UUID statementId = createPersistentStatement();
+
+        CountDownLatch firstTransactionLockedStatement = new CountDownLatch(1);
+        CountDownLatch releaseFirstTransaction = new CountDownLatch(1);
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            Future<?> firstTransaction = executor.submit(() -> {
+                org.springframework.transaction.support.TransactionTemplate transactionTemplate =
+                        new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+
+                transactionTemplate.executeWithoutResult(status -> {
+                    statementRepository.findByIdWithBlock(statementId)
+                            .orElseThrow(() -> new EntityNotFoundException(
+                                    "Заявка с id " + statementId + " не найдена"
+                            ));
+
+                    firstTransactionLockedStatement.countDown();
+
+                    try {
+                        assertThat(releaseFirstTransaction.await(5, SECONDS))
+                                .as("Первая транзакция должна дождаться разрешения на завершение")
+                                .isTrue();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException(e);
+                    }
+                });
+            });
+
+            assertThat(firstTransactionLockedStatement.await(5, SECONDS))
+                    .as("Первая транзакция должна взять DB-lock на statement")
+                    .isTrue();
+
+            LoanOfferDto offer = DealApiApplicationTests.loanOffer(statementId, "13.90");
+
+            Future<?> secondCall = executor.submit(() -> dealApiService.selectOffer(offer));
+
+            MILLISECONDS.sleep(500);
+
+            assertThat(secondCall.isDone())
+                    .as("Второй вызов selectOffer должен ждать освобождения DB-lock")
+                    .isFalse();
+
+            releaseFirstTransaction.countDown();
+
+            firstTransaction.get(5, SECONDS);
+            secondCall.get(5, SECONDS);
+
+            assertThat(secondCall.isDone()).isTrue();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private UUID createPersistentStatement() {
+        Client client = new Client();
+        client.setLastName("Ivanov");
+        client.setFirstName("Ivan");
+        client.setMiddleName("Ivanovich");
+        client.setBirthDate(LocalDate.of(1995, 5, 20));
+        client.setEmail("ivanov-lock-test@test.ru");
+
+        Client savedClient = clientRepository.saveAndFlush(client);
+
+        Statement statement = Statement.builder()
+                .client(savedClient)
+                .status(ApplicationStatus.PREAPPROVAL)
+                .creationDate(LocalDateTime.now())
+                .statusHistory(new java.util.ArrayList<>(List.of(
+                        new StatementStatusHistoryDto(
+                                ApplicationStatus.PREAPPROVAL,
+                                LocalDateTime.now(),
+                                ChangeType.AUTOMATIC
+                        )
+                )))
+                .build();
+
+        Statement savedStatement = statementRepository.saveAndFlush(statement);
+
+        return savedStatement.getId();
     }
 }

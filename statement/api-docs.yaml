@@ -1,0 +1,88 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://localhost:8083
+  description: Generated server url
+paths:
+  /statement:
+    post:
+      tags:
+      - statement-controller
+      operationId: calculateLoanOffers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoanStatementRequestDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LoanOfferDto"
+  /statement/offer:
+    post:
+      tags:
+      - statement-controller
+      operationId: selectOffer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoanOfferDto"
+        required: true
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    LoanStatementRequestDto:
+      type: object
+      properties:
+        amount:
+          type: number
+        term:
+          type: integer
+          format: int32
+        firstName:
+          type: string
+        lastName:
+          type: string
+        middleName:
+          type: string
+        email:
+          type: string
+        birthdate:
+          type: string
+          format: date
+        passportSeries:
+          type: string
+        passportNumber:
+          type: string
+    LoanOfferDto:
+      type: object
+      properties:
+        statementId:
+          type: string
+          format: uuid
+        requestedAmount:
+          type: number
+        totalAmount:
+          type: number
+        term:
+          type: integer
+          format: int32
+        monthlyPayment:
+          type: number
+        rate:
+          type: number
+        isInsuranceEnabled:
+          type: boolean
+        isSalaryClient:
+          type: boolean

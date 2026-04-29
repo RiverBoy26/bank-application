@@ -85,7 +85,7 @@ public class DealApiServiceImpl implements DealApiService {
             throw new IllegalArgumentException("В предложении отсутствует statementId");
         }
 
-        Statement statement = statementRepository.findById(loanOfferDto.getStatementId())
+        Statement statement = statementRepository.findByIdWithBlock(loanOfferDto.getStatementId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Заявка с id " + loanOfferDto.getStatementId() + " не найдена"
                 ));
