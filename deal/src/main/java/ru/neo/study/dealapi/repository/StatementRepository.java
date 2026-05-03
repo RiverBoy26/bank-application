@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Repository
 public interface StatementRepository extends JpaRepository<Statement, UUID> {
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Lock(LockModeType.OPTIMISTIC)
     @Query("select s from Statement s where s.id = :statementId")
     Optional<Statement> findByIdWithBlock(@Param("statementId") UUID statementId);
 }

@@ -27,7 +27,6 @@ public class StatementController {
         List<LoanOfferDto> offers = statementService.calculateLoanOffers(loanStatementRequestDto);
 
         log.info("Кредитные предложения успешно рассчитаны. Количество предложений: {}", offers == null ? 0 : offers.size());
-        log.info("Кредитные предложения: {}", offers);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(offers);
     }

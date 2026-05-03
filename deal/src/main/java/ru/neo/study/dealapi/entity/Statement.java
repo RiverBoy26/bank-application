@@ -10,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import ru.neo.study.dealapi.dto.LoanOfferDto;
 import ru.neo.study.dealapi.dto.StatementStatusHistoryDto;
 import ru.neo.study.dealapi.enums.ApplicationStatus;
@@ -70,4 +71,8 @@ public class Statement {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "status_history", columnDefinition = "jsonb")
     private List<StatementStatusHistoryDto> statusHistory;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 }

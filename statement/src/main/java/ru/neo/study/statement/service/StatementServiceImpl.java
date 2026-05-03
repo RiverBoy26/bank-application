@@ -2,10 +2,12 @@ package ru.neo.study.statement.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import ru.neo.study.statement.dealClient.DealClient;
 import ru.neo.study.statement.dto.LoanOfferDto;
 import ru.neo.study.statement.dto.LoanStatementRequestDto;
+import ru.neo.study.statement.exception.DealServiceException;
 
 import java.util.List;
 
@@ -17,7 +19,16 @@ public class StatementServiceImpl implements StatementService {
 
     public List<LoanOfferDto> calculateLoanOffers(LoanStatementRequestDto loanStatementRequestDto) {
         log.debug("Отправка запроса в микросервис deal: {}", loanStatementRequestDto);
-        List<LoanOfferDto> offers = dealClient.calculateLoanTerms(loanStatementRequestDto).getBody();
+        ResponseEntity<List<LoanOfferDto>> response =
+                dealClient.calculateLoanTerms(loanStatementRequestDto);
+
+        if (response == null || response.getBody() == null) {
+            throw new DealServiceException(
+                    "Микросервис deal вернул пустой ответ при расчете кредитных предложений"
+            );
+        }
+
+        List<LoanOfferDto> offers = response.getBody();
 
         log.debug("Полученные предложения от микросервиса deal: {}", offers);
         return offers;

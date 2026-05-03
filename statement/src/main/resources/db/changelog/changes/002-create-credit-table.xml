@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+            http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="002-create-credit-table" author="neo">
+        <createTable tableName="credit">
+            <column name="credit_id" type="UUID">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_credit"
+                             nullable="false"/>
+            </column>
+
+            <column name="amount" type="NUMERIC(19, 2)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="term" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="monthly_payment" type="NUMERIC(19, 2)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="rate" type="NUMERIC(19, 2)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="psk" type="NUMERIC(19, 2)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="payment_schedule" type="JSONB"/>
+
+            <column name="insurance_enabled" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="salary_client" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="credit_status" type="VARCHAR(10)"/>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="credit"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
