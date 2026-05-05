@@ -3,6 +3,9 @@ package ru.neo.study.statement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import feign.FeignException;
+import feign.Request;
+import feign.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,13 +20,18 @@ import ru.neo.study.statement.controller.StatementController;
 import ru.neo.study.statement.dealClient.DealClient;
 import ru.neo.study.statement.dto.LoanOfferDto;
 import ru.neo.study.statement.dto.LoanStatementRequestDto;
+import ru.neo.study.statement.exception.ErrorHandler;
+import ru.neo.study.statement.exception.OfferSelectionConflictException;
+import ru.neo.study.statement.exception.OffersNotFoundException;
 import ru.neo.study.statement.exception.ValidationException;
 import ru.neo.study.statement.service.StatementService;
 import ru.neo.study.statement.service.StatementServiceImpl;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -66,6 +74,7 @@ class StatementApplicationTests {
     void setUp() {
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new StatementController(statementService))
+                .setControllerAdvice(new ErrorHandler())
                 .build();
 
         service = new StatementServiceImpl(dealClient);
@@ -90,6 +99,26 @@ class StatementApplicationTests {
     }
 
     @Test
+    void calculateLoanOffersShouldReturnNotFoundWhenOffersAreMissing() throws Exception {
+        LoanStatementRequestDto request = request();
+
+        when(statementService.calculateLoanOffers(any(LoanStatementRequestDto.class)))
+                .thenThrow(new OffersNotFoundException("Кредитные предложения не найдены"));
+
+        mockMvc.perform(post("/statement")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(content().json("""
+                        {
+                          "status": 404,
+                          "error": "Кредитные предложения не найдены",
+                          "description": "Кредитные предложения не найдены"
+                        }
+                        """));
+    }
+
+    @Test
     void selectOfferShouldReturnOk() throws Exception {
         LoanOfferDto offer = offer("15.50");
 
@@ -100,6 +129,27 @@ class StatementApplicationTests {
                 .andExpect(content().string(""));
 
         verify(statementService).selectOffer(any(LoanOfferDto.class));
+    }
+
+    @Test
+    void selectOfferShouldReturnConflictWhenStatementWasChangedConcurrently() throws Exception {
+        LoanOfferDto offer = offer("15.50");
+
+        doThrow(new OfferSelectionConflictException(
+                "Заявка была изменена другим запросом. Обновите данные и повторите попытку."
+        )).when(statementService).selectOffer(any(LoanOfferDto.class));
+
+        mockMvc.perform(post("/statement/offer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(offer)))
+                .andExpect(status().isConflict())
+                .andExpect(content().json("""
+                        {
+                          "status": 409,
+                          "error": "Конфликт при обновлении заявки",
+                          "description": "Заявка была изменена другим запросом. Обновите данные и повторите попытку."
+                        }
+                        """));
     }
 
     @Test
@@ -116,15 +166,32 @@ class StatementApplicationTests {
     }
 
     @Test
-    void serviceShouldReturnNullWhenDealClientBodyIsNull() {
+    void serviceShouldRetryOnServerErrorAndReturnOffers() {
+        LoanStatementRequestDto request = request();
+        List<LoanOfferDto> offers = offers();
+
+        when(dealClient.calculateLoanTerms(request))
+                .thenThrow(feignException(500))
+                .thenThrow(feignException(502))
+                .thenReturn(ResponseEntity.ok(offers));
+
+        assertThat(service.calculateLoanOffers(request)).isEqualTo(offers);
+
+        verify(dealClient, times(3)).calculateLoanTerms(request);
+    }
+
+    @Test
+    void serviceShouldRetryAndThrowWhenDealClientBodyIsNull() {
         LoanStatementRequestDto request = request();
 
         when(dealClient.calculateLoanTerms(request))
-                .thenReturn(ResponseEntity.ok().build());
+                .thenReturn(ResponseEntity.<List<LoanOfferDto>>ok().build());
 
-        assertThat(service.calculateLoanOffers(request)).isNull();
+        assertThatThrownBy(() -> service.calculateLoanOffers(request))
+                .isInstanceOf(OffersNotFoundException.class)
+                .hasMessage("Кредитные предложения не найдены");
 
-        verify(dealClient).calculateLoanTerms(request);
+        verify(dealClient, times(3)).calculateLoanTerms(request);
     }
 
     @Test
@@ -344,6 +411,26 @@ class StatementApplicationTests {
 
     private static BigDecimal bd(String value) {
         return new BigDecimal(value);
+    }
+
+    private static FeignException feignException(int status) {
+        Request request = Request.create(
+                Request.HttpMethod.POST,
+                "/deal/statement",
+                Map.of(),
+                null,
+                StandardCharsets.UTF_8,
+                null
+        );
+
+        Response response = Response.builder()
+                .status(status)
+                .reason("test")
+                .request(request)
+                .headers(Map.of())
+                .build();
+
+        return FeignException.errorStatus("DealClient#request", response);
     }
 
     private static String json(Object object) throws Exception {

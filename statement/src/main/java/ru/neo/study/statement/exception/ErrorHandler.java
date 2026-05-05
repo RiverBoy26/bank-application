@@ -1,6 +1,7 @@
 package ru.neo.study.statement.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -13,17 +14,32 @@ import java.util.Map;
 @Slf4j
 public class ErrorHandler {
 
-    @ExceptionHandler(DealServiceException.class)
-    public ResponseEntity<Map<String, Object>> handleDealServiceException(DealServiceException ex) {
+    @ExceptionHandler(OfferSelectionConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleSelectionConflictException(OfferSelectionConflictException ex) {
         log.error("Ошибка при обращении к микросервису deal", ex);
 
-        HttpStatus status = HttpStatus.BAD_GATEWAY;
+        HttpStatus status = HttpStatus.CONFLICT;
 
         return ResponseEntity
                 .status(status)
                 .body(createResponse(
                         status,
-                        "Ошибка при обращении к микросервису deal",
+                        "Конфликт при обновлении заявки",
+                        ex.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(OffersNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleOffersNotFoundException(OffersNotFoundException ex) {
+        log.warn("Кредитные предложения не найдены", ex);
+
+        HttpStatus status = HttpStatus.NOT_FOUND;
+
+        return ResponseEntity
+                .status(status)
+                .body(createResponse(
+                        status,
+                        "Кредитные предложения не найдены",
                         ex.getMessage()
                 ));
     }

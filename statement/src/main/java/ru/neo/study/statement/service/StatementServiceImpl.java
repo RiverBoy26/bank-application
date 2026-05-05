@@ -1,5 +1,7 @@
 package ru.neo.study.statement.service;
 
+import feign.FeignException;
+import feign.RetryableException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -7,7 +9,7 @@ import org.springframework.stereotype.Service;
 import ru.neo.study.statement.dealClient.DealClient;
 import ru.neo.study.statement.dto.LoanOfferDto;
 import ru.neo.study.statement.dto.LoanStatementRequestDto;
-import ru.neo.study.statement.exception.DealServiceException;
+import ru.neo.study.statement.exception.OffersNotFoundException;
 
 import java.util.List;
 
@@ -17,21 +19,25 @@ import java.util.List;
 public class StatementServiceImpl implements StatementService {
     private final DealClient dealClient;
 
-    public List<LoanOfferDto> calculateLoanOffers(LoanStatementRequestDto loanStatementRequestDto) {
-        log.debug("Отправка запроса в микросервис deal: {}", loanStatementRequestDto);
-        ResponseEntity<List<LoanOfferDto>> response =
-                dealClient.calculateLoanTerms(loanStatementRequestDto);
+    private static final int MAX_ATTEMPTS = 3;
 
-        if (response == null || response.getBody() == null) {
-            throw new DealServiceException(
-                    "Микросервис deal вернул пустой ответ при расчете кредитных предложений"
-            );
+    public List<LoanOfferDto> calculateLoanOffers(LoanStatementRequestDto loanStatementRequestDto) {
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                log.debug("Отправка запроса в микросервис deal: {}", loanStatementRequestDto);
+                ResponseEntity<List<LoanOfferDto>> response = dealClient.calculateLoanTerms(loanStatementRequestDto);
+                if (response != null && response.getBody() != null && !response.getBody().isEmpty()) {
+                    List<LoanOfferDto> offers = response.getBody();
+                    log.debug("Полученные предложения от микросервиса deal: {}", offers);
+                    return offers;
+                }
+            } catch (RetryableException | FeignException.FeignServerException ex) {
+                log.warn("Попытка {} из {} завершилась ошибкой при расчёте кредитных предложений",
+                        attempt, MAX_ATTEMPTS, ex);
+            }
         }
 
-        List<LoanOfferDto> offers = response.getBody();
-
-        log.debug("Полученные предложения от микросервиса deal: {}", offers);
-        return offers;
+        throw new OffersNotFoundException("Кредитные предложения не найдены");
     }
 
     public void selectOffer(LoanOfferDto loanOfferDto) {
