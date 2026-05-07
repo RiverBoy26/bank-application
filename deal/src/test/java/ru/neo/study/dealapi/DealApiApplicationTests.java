@@ -16,6 +16,7 @@ import ru.neo.study.dealapi.calculatorClient.CalculatorClient;
 import ru.neo.study.dealapi.controller.DealApiController;
 import ru.neo.study.dealapi.dto.CreditDto;
 import ru.neo.study.dealapi.dto.EmploymentDto;
+import ru.neo.study.dealapi.dto.ErrorResponseDto;
 import ru.neo.study.dealapi.dto.FinishRegistrationRequestDto;
 import ru.neo.study.dealapi.dto.LoanOfferDto;
 import ru.neo.study.dealapi.dto.LoanStatementRequestDto;
@@ -129,17 +130,18 @@ class DealApiApplicationTests {
             ObjectOptimisticLockingFailureException exception =
                     new ObjectOptimisticLockingFailureException(Statement.class, statementId);
 
-            ResponseEntity<Map<String, Object>> response =
+            ResponseEntity<ErrorResponseDto> response =
                     errorHandler.handleOptimisticLockingFailureException(exception);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-            assertThat(response.getBody())
-                    .containsEntry("status", 409)
-                    .containsEntry("error", "Конфликт при обновлении заявки")
-                    .containsEntry(
-                            "description",
-                            "Заявка была изменена другим запросом. Обновите данные и повторите попытку."
-                    );
+
+            ErrorResponseDto body = response.getBody();
+
+            assertThat(body).isNotNull();
+            assertThat(body.getStatus()).isEqualTo(409);
+            assertThat(body.getError()).isEqualTo("Конфликт при обновлении заявки");
+            assertThat(body.getDescription())
+                    .isEqualTo("Заявка была изменена другим запросом. Обновите данные и повторите попытку.");
         }
     }
 

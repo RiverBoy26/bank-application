@@ -31,3 +31,23 @@ springdoc:
     resolve-schema-properties: 'true'
   swagger-ui:
     url: /v3/api-docs.yaml
+
+resilience4j:
+  retry:
+    instances:
+      dealClientRetry:
+        max-attempts: 3
+        wait-duration: 500ms
+        retry-exceptions:
+          - feign.RetryableException
+          - feign.FeignException
+          - ru.neo.study.statement.exception.OffersNotFoundException
+
+  circuitbreaker:
+    instances:
+      dealClientCircuitBreaker:
+        failure-rate-threshold: 50
+        sliding-window-size: 3
+        minimum-number-of-calls: 3
+        permitted-number-of-calls-in-half-open-state: 1
+        wait-duration-in-open-state: 10s

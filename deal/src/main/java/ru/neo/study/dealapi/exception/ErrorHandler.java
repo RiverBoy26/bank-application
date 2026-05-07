@@ -6,7 +6,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.neo.study.dealapi.dto.ErrorResponseDto;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -15,26 +17,20 @@ import java.util.Map;
 public class ErrorHandler {
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
-    public ResponseEntity<Map<String, Object>> handleOptimisticLockingFailureException(
+    public ResponseEntity<ErrorResponseDto> handleOptimisticLockingFailureException(
             OptimisticLockingFailureException ex
     ) {
+        log.warn("Optimistic locking conflict", ex);
+
         HttpStatus status = HttpStatus.CONFLICT;
-        log.warn("Конфликт версий при обновлении заявки", ex);
 
         return ResponseEntity
                 .status(status)
-                .body(createResponse(
-                        status,
-                        "Конфликт при обновлении заявки",
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        status.value(),
+                        "STATEMENT_UPDATE_CONFLICT",
                         "Заявка была изменена другим запросом. Обновите данные и повторите попытку."
                 ));
-    }
-
-    private Map<String, Object> createResponse(HttpStatus status, String error, String description) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("status", status.value());
-        response.put("error", error);
-        response.put("description", description);
-        return response;
     }
 }

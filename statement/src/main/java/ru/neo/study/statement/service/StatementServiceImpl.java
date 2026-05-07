@@ -2,6 +2,8 @@ package ru.neo.study.statement.service;
 
 import feign.FeignException;
 import feign.RetryableException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,25 +21,20 @@ import java.util.List;
 public class StatementServiceImpl implements StatementService {
     private final DealClient dealClient;
 
-    private static final int MAX_ATTEMPTS = 3;
-
+    @Retry(name = "dealClientRetry")
+    @CircuitBreaker(name = "dealClientCircuitBreaker", fallbackMethod = "calculateLoanOffersFallback")
     public List<LoanOfferDto> calculateLoanOffers(LoanStatementRequestDto loanStatementRequestDto) {
-        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-            try {
-                log.debug("Отправка запроса в микросервис deal: {}", loanStatementRequestDto);
-                ResponseEntity<List<LoanOfferDto>> response = dealClient.calculateLoanTerms(loanStatementRequestDto);
-                if (response != null && response.getBody() != null && !response.getBody().isEmpty()) {
-                    List<LoanOfferDto> offers = response.getBody();
-                    log.debug("Полученные предложения от микросервиса deal: {}", offers);
-                    return offers;
-                }
-            } catch (RetryableException | FeignException.FeignServerException ex) {
-                log.warn("Попытка {} из {} завершилась ошибкой при расчёте кредитных предложений",
-                        attempt, MAX_ATTEMPTS, ex);
-            }
+        log.debug("Отправка запроса в микросервис deal: {}", loanStatementRequestDto);
+
+        ResponseEntity<List<LoanOfferDto>> response = dealClient.calculateLoanTerms(loanStatementRequestDto);
+        List<LoanOfferDto> offers = response.getBody();
+
+        if (offers == null || offers.isEmpty()) {
+            throw new OffersNotFoundException("Кредитные предложения не найдены");
         }
 
-        throw new OffersNotFoundException("Кредитные предложения не найдены");
+        log.debug("Полученные предложения от микросервиса deal: {}", offers);
+        return offers;
     }
 
     public void selectOffer(LoanOfferDto loanOfferDto) {
@@ -46,5 +43,15 @@ public class StatementServiceImpl implements StatementService {
 
         log.debug("Выбранное кредитное предложение успешно отправлено в микросервис deal. ID заявки: {}",
                 loanOfferDto.getStatementId());
+    }
+
+    private List<LoanOfferDto> calculateLoanOffersFallback(
+            LoanStatementRequestDto request,
+            Throwable ex
+    ) {
+        log.warn("Fallback метода calculateLoanOffers. Причина: {}", ex.getMessage());
+        throw new OffersNotFoundException(
+                "Кредитные предложения не найдены. Повторите попытку позже."
+        );
     }
 }

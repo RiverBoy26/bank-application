@@ -6,7 +6,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.neo.study.statement.dto.ErrorResponseDto;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -14,56 +16,17 @@ import java.util.Map;
 @Slf4j
 public class ErrorHandler {
 
-    @ExceptionHandler(OfferSelectionConflictException.class)
-    public ResponseEntity<Map<String, Object>> handleSelectionConflictException(OfferSelectionConflictException ex) {
-        log.error("Ошибка при обращении к микросервису deal", ex);
-
-        HttpStatus status = HttpStatus.CONFLICT;
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorResponseDto> handleApiException(ApiException ex) {
+        log.warn("API error [{}]: {}", ex.getCode(), ex.getMessage(), ex);
 
         return ResponseEntity
-                .status(status)
-                .body(createResponse(
-                        status,
-                        "Конфликт при обновлении заявки",
+                .status(ex.getStatus())
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        ex.getStatus().value(),
+                        ex.getCode(),
                         ex.getMessage()
                 ));
-    }
-
-    @ExceptionHandler(OffersNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleOffersNotFoundException(OffersNotFoundException ex) {
-        log.warn("Кредитные предложения не найдены", ex);
-
-        HttpStatus status = HttpStatus.NOT_FOUND;
-
-        return ResponseEntity
-                .status(status)
-                .body(createResponse(
-                        status,
-                        "Кредитные предложения не найдены",
-                        ex.getMessage()
-                ));
-    }
-
-    @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(ValidationException ex) {
-        log.error("Ошибка валидации", ex);
-
-        HttpStatus status = HttpStatus.BAD_REQUEST;
-
-        return ResponseEntity
-                .status(status)
-                .body(createResponse(
-                        status,
-                        "Ошибка валидации",
-                        ex.getMessage()
-                ));
-    }
-
-    private Map<String, Object> createResponse(HttpStatus status, String error, String description) {
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("status", status.value());
-        response.put("error", error);
-        response.put("description", description);
-        return response;
     }
 }
