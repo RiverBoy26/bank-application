@@ -23,6 +23,7 @@ public interface StatementMapper {
     @Mapping(target = "appliedOffer", ignore = true)
     @Mapping(target = "signDate", ignore = true)
     @Mapping(target = "sesCode", ignore = true)
+    @Mapping(target = "version", ignore = true)
     @Mapping(
             target = "statusHistory",
             expression = "java(new java.util.ArrayList<>(java.util.List.of(createInitialStatusHistory(status, changeType))))"

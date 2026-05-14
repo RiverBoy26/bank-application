@@ -18,7 +18,7 @@ services:
 
   calculator-api:
     build:
-      context: ./api/calculator-api
+      context: ./calculator
       dockerfile: Dockerfile
     container_name: calculator-api
     ports:
@@ -26,7 +26,7 @@ services:
 
   deal-api:
     build:
-      context: ./api/deal-api
+      context: ./deal
       dockerfile: Dockerfile
     container_name: deal-api
     ports:
@@ -42,5 +42,24 @@ services:
       calculator-api:
         condition: service_started
 
+  statement:
+    build:
+      context: ./statement
+      dockerfile: Dockerfile
+    container_name: statement
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/bank_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: admin
+      DEAL_API_BASE_URL: http://deal-api:8082
+    depends_on:
+      postgres:
+        condition: service_healthy
+      deal-api:
+        condition: service_started
+      calculator-api:
+        condition: service_started
 volumes:
   postgres_data:
