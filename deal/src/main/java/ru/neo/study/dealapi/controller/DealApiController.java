@@ -1,5 +1,6 @@
 package ru.neo.study.dealapi.controller;
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +13,7 @@ import ru.neo.study.dealapi.dto.LoanStatementRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import ru.neo.study.dealapi.dto.SesCodeDto;
 import ru.neo.study.dealapi.service.DealApiService;
 
 import java.util.List;
@@ -55,4 +57,36 @@ public class DealApiController {
                 .header("StatementStatus", dealApiService.getStatementStatus(statementId))
                 .build();
     }
+
+    @PostMapping("/document/{statementId}/send")
+    public ResponseEntity<Void> sendDocumentRequest(@PathVariable UUID statementId) {
+        log.info("Получен запрос на отправку документов клиенту: statementId={}", statementId);
+        dealApiService.sendDocumentRequest(statementId);
+        log.info("Запрос на отправку документов успешно обработан: statementId={}", statementId);
+        return ResponseEntity.ok()
+                .header("StatementStatus", dealApiService.getStatementStatus(statementId))
+                .build();
+    }
+
+    @PostMapping("/document/{statementId}/sign")
+    public ResponseEntity<Void> signDocumentRequest(@PathVariable UUID statementId) {
+        log.info("Получен запрос на подписание документов и отправку SES-кода: statementId={}", statementId);
+        dealApiService.signDocumentRequest(statementId);
+        log.info("Запрос на подписание документов успешно обработан, SES-код отправлен: statementId={}", statementId);
+        return ResponseEntity.ok()
+                .header("StatementStatus", dealApiService.getStatementStatus(statementId))
+                .build();
+    }
+
+    @PostMapping("/document/{statementId}/code")
+    public ResponseEntity<Void> signDocument(@PathVariable UUID statementId,
+                                             @RequestBody @Valid SesCodeDto sesCodeDto) {
+        log.info("Получен запрос на проверку SES-кода и выдачу кредита: statementId={}", statementId);
+        dealApiService.signDocument(statementId, sesCodeDto.getSesCode());
+        log.info("SES-код успешно подтверждён, кредит выдан: statementId={}", statementId);
+        return ResponseEntity.ok()
+                .header("StatementStatus", dealApiService.getStatementStatus(statementId))
+                .build();
+    }
+
 }

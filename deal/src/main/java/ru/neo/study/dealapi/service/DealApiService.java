@@ -15,4 +15,10 @@ public interface DealApiService {
     void finishRegistrationAndCalculate(UUID statementId, FinishRegistrationRequestDto finishRegistrationRequestDto);
 
     String getStatementStatus(UUID statementId);
+
+    void sendDocumentRequest(UUID statementId);
+
+    void signDocumentRequest(UUID statementId);
+
+    void signDocument(UUID statementId, Integer sesCode);
 }
