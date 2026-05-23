@@ -1,6 +1,10 @@
 package ru.neo.study.dealapi.service;
 
+import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.beans.factory.annotation.Value;
+import ru.neo.study.dealapi.enums.CreditStatus;
+import ru.neo.study.dealapi.enums.Theme;
 import ru.neo.study.dealapi.mapper.ClientMapper;
 import ru.neo.study.dealapi.mapper.CreditMapper;
 import ru.neo.study.dealapi.mapper.ScoringDataMapper;
@@ -20,9 +24,11 @@ import ru.neo.study.dealapi.repository.ClientRepository;
 import ru.neo.study.dealapi.repository.CreditRepository;
 import ru.neo.study.dealapi.repository.StatementRepository;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Slf4j
@@ -36,16 +42,22 @@ public class DealApiServiceImpl implements DealApiService {
     private final ScoringDataMapper scoringDataMapper;
     private final CreditRepository creditRepository;
     private final CreditMapper creditMapper;
+    private final EmailMessageService emailMessageService;
 
-    private static final int LIST_OFFERS_SIZE = 4;
+    @Value("${ses-code-properties.list-offer-size}")
+    private int LIST_OFFERS_SIZE;
 
+    @Value("${ses-code-properties.min-ses-code}")
+    private int MIN_SES_CODE;
+
+    @Value("${ses-code-properties.max-ses-code-exclusive}")
+    private int MAX_SES_CODE_EXCLUSIVE;
 
     @Override
     @Transactional
     public List<LoanOfferDto> calculateLoanTerms(LoanStatementRequestDto loanStatementRequestDto) {
         Client client = clientMapper.toEntity(loanStatementRequestDto);
         client = clientRepository.save(client);
-        log.debug("Клиент создан и сохранён: clientId={}", client.getId());
 
         Statement statement = statementMapper.toNewStatement(
                 client,
@@ -53,7 +65,6 @@ public class DealApiServiceImpl implements DealApiService {
                 ChangeType.AUTOMATIC
         );
         statement = statementRepository.save(statement);
-        log.debug("Заявка создана и сохранена: statementId={}", statement.getId());
 
         List<LoanOfferDto> offers = calculatorClient.getOffers(loanStatementRequestDto);
         if (offers == null || offers.isEmpty()) {
@@ -99,16 +110,18 @@ public class DealApiServiceImpl implements DealApiService {
         statementRepository.save(statement);
         log.debug("Предложение выбрано и сохранено в заявке: statementId={}, newStatus={}",
                 statement.getId(), statement.getStatus());
+
+        emailMessageService.sendEmailMessage(
+                statement,
+                Theme.FINISH_REGISTRATION,
+                "Кредитное предложение выбрано. Завершите регистрацию и заполните анкету."
+        );
     }
 
     @Override
     @Transactional
     public void finishRegistrationAndCalculate(UUID statementId, FinishRegistrationRequestDto finishRegistrationRequestDto) {
-
-        Statement statement = statementRepository.findById(statementId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Заявка с id " + statementId + " не найдена"
-                ));
+        Statement statement = getStatementById(statementId);
         Client client = statement.getClient();
         log.debug("Найдена заявка и клиент: statementId={}, clientId={}", statement.getId(), client.getId());
 
@@ -119,13 +132,41 @@ public class DealApiServiceImpl implements DealApiService {
         ScoringDataDto scoringDataDto = scoringDataMapper.toDto(client, statement, finishRegistrationRequestDto);
         log.debug("Сформирован ScoringDataDto для statementId={}: {}", statement.getId(), scoringDataDto);
 
-        CreditDto creditDto = calculatorClient.calc(scoringDataDto);
+        CreditDto creditDto;
+        try {
+            creditDto = calculatorClient.calc(scoringDataDto);
+        } catch (FeignException exception) {
+            log.warn(
+                    "При расчёте было отказано в кредите или возвращена ошибка: statementId={}, status={}, body={}",
+                    statement.getId(),
+                    exception.status(),
+                    exception.contentUTF8()
+            );
+
+            statement.setStatus(ApplicationStatus.CC_DENIED);
+
+            statementMapper.appendStatusHistory(
+                    statement,
+                    ApplicationStatus.CC_DENIED,
+                    ChangeType.AUTOMATIC
+            );
+
+            statementRepository.save(statement);
+
+            emailMessageService.sendEmailMessage(
+                    statement,
+                    Theme.STATEMENT_DENIED,
+                    "По результатам скоринга заявка на кредит отклонена."
+            );
+
+            return;
+        }
+
         log.debug("Получен результат полного расчёта кредита от calculator для statementId={}: {}",
                 statement.getId(), creditDto);
 
         Credit credit = creditMapper.toEntity(creditDto);
         credit = creditRepository.save(credit);
-        log.debug("Сущность кредита сохранена: creditId={}, statementId={}", credit.getId(), statement.getId());
 
         statement.setCredit(credit);
         statement.setStatus(ApplicationStatus.CC_APPROVED);
@@ -134,15 +175,126 @@ public class DealApiServiceImpl implements DealApiService {
         statementRepository.save(statement);
         log.debug("Заявка обновлена после полного расчёта кредита: statementId={}, status={}, creditId={}",
                 statement.getId(), statement.getStatus(), credit.getId());
+
+        emailMessageService.sendEmailMessage(
+                statement,
+                Theme.CREATE_DOCUMENTS,
+                "Кредит одобрен. Документы по заявке будут сформированы."
+        );
     }
 
     @Override
     public String getStatementStatus(UUID statementId) {
+        return getStatementById(statementId)
+                .getStatus()
+                .name();
+    }
+
+    @Override
+    @Transactional
+    public void sendDocumentRequest(UUID statementId) {
+        Statement statement = getStatementById(statementId);
+
+        log.debug("Получен запрос на отправку документов: statementId={}, currentStatus={}",
+                statement.getId(), statement.getStatus());
+
+        statement.setStatus(ApplicationStatus.DOCUMENT_CREATED);
+
+        statementMapper.appendStatusHistory(
+                statement, ApplicationStatus.DOCUMENT_CREATED, ChangeType.AUTOMATIC);
+
+        log.debug(
+                "Статус заявки изменён и добавлена запись о формировании документов: statementId={}, status={}",
+                statement.getId(), statement.getStatus());
+
+        statementRepository.save(statement);
+
+        emailMessageService.sendEmailMessage(
+                statement, Theme.SEND_DOCUMENTS, "Документы по кредиту сформированы и отправлены клиенту.");
+    }
+
+    @Override
+    @Transactional
+    public void signDocumentRequest(UUID statementId) {
+        Statement statement = getStatementById(statementId);
+
+        int sesCode = ThreadLocalRandom.current().nextInt(
+                MIN_SES_CODE, MAX_SES_CODE_EXCLUSIVE);
+
+        statement.setSesCode(sesCode);
+        statementRepository.save(statement);
+
+        log.debug(
+                "SES-код сгенерирован и сохранён в заявке: statementId={}, status={}",
+                statement.getId(), statement.getStatus());
+
+        emailMessageService.sendEmailMessage(
+                statement, Theme.SEND_SES, "Код подписания документов: " + sesCode);
+    }
+
+    @Override
+    @Transactional
+    public void signDocument(UUID statementId, Integer sesCode) {
+        Statement statement = getStatementById(statementId);
+
+        if (statement.getSesCode() == null || !statement.getSesCode().equals(sesCode)) {
+            log.warn("Некорректный SES-код: statementId={}", statement.getId());
+            throw new IllegalArgumentException("Некорректный SES-код");
+        }
+
+        statement.setStatus(ApplicationStatus.DOCUMENT_SIGNED);
+        statement.setSignDate(LocalDateTime.now());
+
+        statementMapper.appendStatusHistory(
+                statement,
+                ApplicationStatus.DOCUMENT_SIGNED,
+                ChangeType.MANUAL
+        );
+
+        statementRepository.save(statement);
+
+        log.debug(
+                "Документы подписаны: statementId={}, status={}, signDate={}",
+                statement.getId(),
+                statement.getStatus(),
+                statement.getSignDate()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void issueCredit(UUID statementId) {
+        Statement statement = getStatementById(statementId);
+
+        if (statement.getStatus() != ApplicationStatus.DOCUMENT_SIGNED) {
+            throw new IllegalStateException("Кредит можно выдать только после подписания документов");
+        }
+
+        if (statement.getCredit() != null) {
+            statement.getCredit().setCreditStatus(CreditStatus.ISSUED);
+        }
+
+        statement.setStatus(ApplicationStatus.CREDIT_ISSUED);
+
+        statementMapper.appendStatusHistory(
+                statement,
+                ApplicationStatus.CREDIT_ISSUED,
+                ChangeType.AUTOMATIC
+        );
+
+        statementRepository.save(statement);
+
+        emailMessageService.sendEmailMessage(
+                statement,
+                Theme.CREDIT_ISSUED,
+                "Документы подписаны. Кредит успешно выдан."
+        );
+    }
+
+    private Statement getStatementById(UUID statementId) {
         return statementRepository.findById(statementId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Заявка с id " + statementId + " не найдена"
-                ))
-                .getStatus()
-                .name();
+                ));
     }
 }
