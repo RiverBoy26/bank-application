@@ -14,9 +14,7 @@ public class KafkaEmailProducer {
     private final KafkaTemplate<String, EmailMessage> kafkaTemplate;
 
     public void send(String topic, EmailMessage message) {
-        String key = message.getStatementId() == null
-                ? null
-                : message.getStatementId().toString();
+        String key = message.getStatementId().toString();
 
         kafkaTemplate.send(topic, key, message)
                 .whenComplete((result, exception) -> {

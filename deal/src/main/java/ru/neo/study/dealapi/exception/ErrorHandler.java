@@ -1,5 +1,6 @@
 package ru.neo.study.dealapi.exception;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,24 @@ public class ErrorHandler {
                         status.value(),
                         "STATEMENT_UPDATE_CONFLICT",
                         "Заявка была изменена другим запросом. Обновите данные и повторите попытку."
+                ));
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleEntityNotFoundException(
+            EntityNotFoundException ex
+    ) {
+        log.warn("Entity not found", ex);
+
+        HttpStatus status = HttpStatus.NOT_FOUND;
+
+        return ResponseEntity
+                .status(status)
+                .body(new ErrorResponseDto(
+                        LocalDateTime.now(),
+                        status.value(),
+                        "ENTITY_NOT_FOUND",
+                        "Запись не найдена"
                 ));
     }
 }

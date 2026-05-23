@@ -13,14 +13,9 @@ import ru.neo.study.dealapi.kafka.KafkaEmailProducer;
 @Slf4j
 @RequiredArgsConstructor
 public class EmailMessageService {
-
     private final KafkaEmailProducer kafkaEmailProducer;
 
-    public void sendEmailMessage(
-            Statement statement,
-            Theme theme,
-            String text
-    ) {
+    public void sendEmailMessage(Statement statement, Theme theme, String text) {
         Client client = statement.getClient();
 
         EmailMessage message = EmailMessage.builder()
@@ -32,13 +27,21 @@ public class EmailMessageService {
 
         String topic = theme.getTopicName();
 
-        log.debug(
-                "Подготовлено email-сообщение для отправки в Kafka: statementId={}, theme={}, topic={}",
-                statement.getId(),
-                theme,
-                topic
-        );
+        try {
+            kafkaEmailProducer.send(topic, message);
 
-        kafkaEmailProducer.send(topic, message);
+            log.debug(
+                    "Email-событие отправлено в Kafka: statementId={}, theme={}, topic={}",
+                    statement.getId(), theme, topic
+            );
+        } catch (Exception exception) {
+            log.error(
+                    "Ошибка отправки email-события в Kafka: statementId={}, theme={}, topic={}",
+                    statement.getId(),
+                    theme,
+                    topic,
+                    exception
+            );
+        }
     }
 }

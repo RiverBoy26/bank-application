@@ -28,3 +28,8 @@ springdoc:
   swagger-ui:
     url: /openapi.yml
     path: /swagger-ui.html
+
+ses-code-properties:
+  list-offer-size: '4'
+  min-ses-code: '1000'
+  max-ses-code-exclusive: '10000'

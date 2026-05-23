@@ -2,13 +2,8 @@ package ru.neo.study.dossier.kafka;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.kafka.annotation.BackOff;
-import org.springframework.kafka.annotation.DltHandler;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.mail.MailException;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
@@ -22,14 +17,6 @@ public class EmailMessageListener {
 
     private final DossierService dossierService;
 
-    @RetryableTopic(
-            attempts = "4",
-            backOff = @BackOff(delay = 3000L),
-            include = {
-                    MailException.class,
-                    RuntimeException.class
-            }
-    )
     @KafkaListener(
             topics = {
                     "${app.kafka.topics.finish-registration}",
@@ -59,21 +46,6 @@ public class EmailMessageListener {
                 topic,
                 message.getStatementId(),
                 message.getTheme()
-        );
-    }
-
-    @DltHandler
-    public void handleDltMessage(
-            @Payload EmailMessage message,
-            ConsumerRecord<String, EmailMessage> record
-    ) {
-        log.error(
-                "Сообщение попало в DLT после всех попыток обработки. topic={}, partition={}, offset={}, key={}, message={}",
-                record.topic(),
-                record.partition(),
-                record.offset(),
-                record.key(),
-                message
         );
     }
 }

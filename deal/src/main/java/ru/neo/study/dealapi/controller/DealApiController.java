@@ -83,10 +83,21 @@ public class DealApiController {
                                              @RequestBody @Valid SesCodeDto sesCodeDto) {
         log.info("Получен запрос на проверку SES-кода и выдачу кредита: statementId={}", statementId);
         dealApiService.signDocument(statementId, sesCodeDto.getSesCode());
-        log.info("SES-код успешно подтверждён, кредит выдан: statementId={}", statementId);
+        log.info("SES-код успешно подтверждён: statementId={}", statementId);
         return ResponseEntity.ok()
                 .header("StatementStatus", dealApiService.getStatementStatus(statementId))
                 .build();
+    }
+
+    @PostMapping("/document/{statementId}/issue")
+    public ResponseEntity<Void> issueCredit(@PathVariable UUID statementId) {
+        log.info("Получен запрос на выдачу кредита: statementId={}", statementId);
+
+        dealApiService.issueCredit(statementId);
+
+        log.info("Кредит успешно выдан: statementId={}", statementId);
+
+        return ResponseEntity.ok().build();
     }
 
 }
